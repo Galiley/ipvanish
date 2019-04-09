@@ -1,18 +1,36 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
+import sys
+import traceback
 
+from .handler import IpvanishVPNHandler
 
 class IpVanishCli(object):
     def __init__(self):
-        self._parser = IpvanishParser(
+        self.parser = IpvanishParser(
             "ipvanish",
             description=("Manage Ipvanish from the cli")
         )
 
+        self.handler = IpvanishVPNHandler()
+    
     def run(self, args=None):
-        arguments = vars(self._parser.parse_args(args))
-        print(arguments)
+        try:
+            arguments = vars(self.parser.parse_args(args))
+            if arguments['command'] is None:
+                self.parser.print_help()
+            else:
+                if arguments['command'] == 'update':
+                    self.handler.update()
+                elif arguments["command"] == 'connect':
+                    self.handler.connect(arguments["countries"])
+                else:
+                    raise Exception("Unknown command")
+        except Exception as e:
+            print(e)
+            self.parser.print_help()
 
 
 class IpvanishParser(argparse.ArgumentParser):
@@ -36,46 +54,12 @@ class IpvanishParser(argparse.ArgumentParser):
             'connect',
             help='connect to server'
         )
-        connect.add_argument(
-            'settings',
-            default=None,
-            nargs="*"
-        )
         self.add_filters(connect.add_argument_group('filters'))
 
-        ping = command.add_parser(
-            'ping',
-            help='ping servers'
-        )
-        ping.add_argument(
-            self.SUBCOMMAND,
-            help="default: servers",
-            default='servers',
-            nargs="?",
-            choices=['servers', 'countries', 'cities']
-        )
-        self.add_filters(ping.add_argument_group('filters'))
-
     def add_filters(self, parser):
-        parser.add_argument(
-            '--server',
-            action='append',
-            dest='servers',
-            metavar="",
-            help="server name or code"
-        )
         parser.add_argument(
             '--country',
             action='append',
             dest='countries',
-            metavar="",
             help="country name or code"
-        )
-
-        parser.add_argument(
-            '--city',
-            action='append',
-            dest='cities',
-            metavar="",
-            help="city name"
         )
