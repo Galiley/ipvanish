@@ -1,1 +1,2 @@
 requests >= 2.21.0
+textable >= 1.6.1

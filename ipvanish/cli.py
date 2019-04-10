@@ -19,6 +19,14 @@ class IpVanishCli(object):
     def run(self, args=None):
         try:
             arguments = vars(self.parser.parse_args(args))
+            if "countries" in arguments:
+                L = []
+                for args in arguments['countries']:
+                    if isinstance(args, list):
+                        L = L+args
+                    else:
+                        L.append(args)
+                arguments['countries'] = L
             if arguments['command'] is None:
                 self.parser.print_help()
             else:
@@ -26,10 +34,11 @@ class IpVanishCli(object):
                     self.handler.update()
                 elif arguments["command"] == 'connect':
                     self.handler.connect(arguments["countries"])
+                elif arguments['command'] == 'info':
+                    self.handler.info(arguments["countries"])
                 else:
                     raise Exception("Unknown command")
         except Exception as e:
-            print(e)
             self.parser.print_help()
 
 
@@ -47,12 +56,18 @@ class IpvanishParser(argparse.ArgumentParser):
 
         command.add_parser(
             "update",
-            help="update ipvanish servers config files"
+            help="Update ipvanish servers config files"
         )
+
+        info = command.add_parser(
+            "info",
+            help="Get informations"
+        )
+        self.add_filters(info.add_argument_group('filters'))
 
         connect = command.add_parser(
             'connect',
-            help='connect to server'
+            help='Connect to an ipvanish vpn server'
         )
         self.add_filters(connect.add_argument_group('filters'))
 
@@ -61,5 +76,6 @@ class IpvanishParser(argparse.ArgumentParser):
             '--country',
             action='append',
             dest='countries',
+            nargs='+',
             help="country name or code"
         )

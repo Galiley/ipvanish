@@ -31,8 +31,18 @@ class IpvanishVPN(object):
             raise("Invalid config file")
 
         self.ca = os.path.join(os.path.dirname(config_path),self.config['ca'][0])
-
         self.server = self.config["remote"][0]
+        
+        config_file_match = re.search(
+            r"ipvanish-(?P<country>[A-Z]{2})-(?P<town>.*)-[a-z]{3}-[a-z0-9]{3}\.ovpn",
+            os.path.basename(config_path)
+        )
+
+        self.country_code = None
+        self.town = None
+        if config_file_match is not None:
+            self.country_code = config_file_match.group("country")
+            self.town = " ".join(config_file_match.group("town").split("-"))
         self.ip = None
         self.ping = None
         self.proc = None
@@ -48,12 +58,12 @@ class IpvanishVPN(object):
 
     def stop(self, signum, frame):
         if self.proc is not None:
-            self.proc.send_signal(signum)
-
+            self.proc.kill()
+    
     @threaded
-    def get_ping(self):
+    def ping_server(self):
         server = self.ip if self.ip is not None else self.server
-        ping_process = subprocess.Popen(["ping", "-c2", server], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ping_process = subprocess.Popen(["ping", "-c2", "-w1", server], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = ping_process.communicate()
         if err:
             return None
@@ -71,6 +81,6 @@ class IpvanishVPN(object):
 
     def connect(self):
         args = ['sudo','openvpn', "--config", self.config_path, '--auth-user-pass', os.path.join(CONFIG_PATH, 'auth'), "--ca", self.ca]
-        print(args)
         self.proc = subprocess.Popen(args)
+        self.proc.wait()
 
