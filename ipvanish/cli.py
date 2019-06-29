@@ -77,5 +77,6 @@ class IpvanishParser(argparse.ArgumentParser):
             action='append',
             dest='countries',
             nargs='+',
-            help="country name or code"
+            help="country name or code",
+            default=[]
         )

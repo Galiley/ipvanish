@@ -19,9 +19,9 @@ from .vpn import IpvanishVPN
 
 class IpvanishVPNHandler:
 
-    def get_ipvanish_config_list(self, countries=None):
+    def get_ipvanish_config_list(self, countries=[]):
         config_list = glob.glob(os.path.join(CONFIG_PATH, "configs", "*.ovpn"))
-        if countries is not None:
+        if len(countries) > 0:
             L = []
             regex = r"ipvanish-("+r"|".join(countries)+r")-"
             for vpn in config_list:
