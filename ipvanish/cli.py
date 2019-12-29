@@ -30,12 +30,10 @@ class IpVanishCli(object):
             if arguments['command'] is None:
                 self.parser.print_help()
             else:
-                if arguments['command'] == 'update':
-                    self.handler.update()
+                if arguments['command'] == 'sync':
+                    self.handler.sync()
                 elif arguments["command"] == 'connect':
                     self.handler.connect(arguments["countries"])
-                elif arguments['command'] == 'info':
-                    self.handler.info(arguments["countries"])
                 else:
                     raise Exception("Unknown command")
         except Exception as e:
@@ -55,15 +53,9 @@ class IpvanishParser(argparse.ArgumentParser):
         )
 
         command.add_parser(
-            "update",
-            help="Update ipvanish servers config files"
+            "sync",
+            help="Sync ipvanish servers config files"
         )
-
-        info = command.add_parser(
-            "info",
-            help="Get informations"
-        )
-        self.add_filters(info.add_argument_group('filters'))
 
         connect = command.add_parser(
             'connect',

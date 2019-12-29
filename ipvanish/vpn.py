@@ -4,9 +4,16 @@ import os
 import subprocess
 import re
 import signal
+import threading
 
-from .utils import threaded
 from .settings import CONFIG_PATH
+
+def threaded(fn):
+    def run(*k, **kw):
+        t = threading.Thread(target=fn, args=k, kwargs=kw)
+        t.start()
+        return t
+    return run
 
 class IpvanishVPN(object):
 
@@ -51,10 +58,31 @@ class IpvanishVPN(object):
         signal.signal(signal.SIGINT, self.stop)
 
     def __str__(self):
-        if self.ip is not None:
-            return "{} ({})".format(self.server, self.ip)
-        else:
-            return self.server
+        s = ""
+        if self.country_code is not None and self.town is not None:
+            s+="[{}, {}] ".format(self.town, self.country_code)
+        s += "{} ".format(self.server)
+        if self.ping is not None:
+            s += "- {} ms".format(self.ping)
+        return s
+
+    def __lt__(self, other):
+        return self.ping < other.ping
+
+    def __le__(self, other):
+        return not self.__gt__(other)
+
+    def __eq__(self, other):
+        return self.ping == other.ping
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __gt__(self, other):
+        return self.ping > other.ping
+
+    def __ge__(self, other):
+        return not self.__lt__(other)
 
     def stop(self, signum, frame):
         if self.proc is not None:
@@ -63,10 +91,11 @@ class IpvanishVPN(object):
     @threaded
     def ping_server(self):
         server = self.ip if self.ip is not None else self.server
-        ping_process = subprocess.Popen(["ping", "-c2", "-w1", server], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ping_process = subprocess.Popen(["ping", "-c3", "-w1", server], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = ping_process.communicate()
         if err:
-            return None
+            self.ping = float('inf')
+            return
         output = str(out)
         if self.ip is None:
             regex = r"PING "+r"\.".join(self.server.split("."))+r" \((?P<ip>[(\d{2})?.]+)\)"
@@ -77,10 +106,11 @@ class IpvanishVPN(object):
         ping_match = re.search(r"rtt min/avg/max/mdev = [\d.]+/(?P<ping>[\d.]+)/[\d.]+/[\d.]+ ms", output)
         if ping_match is not None:
             ping = float(ping_match.group("ping"))
+        else:
+            ping = float('inf')
         self.ping = ping
 
     def connect(self):
         args = ['sudo','openvpn', "--config", self.config_path, '--auth-user-pass', os.path.join(CONFIG_PATH, 'auth'), "--ca", self.ca]
         self.proc = subprocess.Popen(args)
         self.proc.wait()
-
