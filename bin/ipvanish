@@ -1,0 +1,9 @@
+#!/usr/bin/env python
+
+try:
+    from ipvanish.cli import IpVanishCli
+except ImportError:
+    raise SystemExit('Failed to import ipvanish cli')
+
+cli = IpVanishCli()
+cli.run()

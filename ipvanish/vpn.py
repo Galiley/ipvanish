@@ -6,23 +6,41 @@ import re
 import signal
 import threading
 
-from .settings import CONFIG_PATH
+from ipvanish.error import IpvanishError
+
 
 def threaded(fn):
     def run(*k, **kw):
         t = threading.Thread(target=fn, args=k, kwargs=kw)
         t.start()
         return t
+
     return run
 
-class IpvanishVPN(object):
 
-    def __init__(self, config_path):
-        if not os.path.exists(config_path):
-            raise ValueError("Invalid config path")
+class IpvanishVPN:
+    def __init__(self, ovpn_path, geojson={}):
+        if not os.path.exists(ovpn_path):
+            raise IpvanishError("Invalid path to ovpn config file")
 
-        self.config_path = config_path
-        with open(config_path, 'r') as config_file:
+        self.ovpn_path = ovpn_path
+        self.geojson = geojson
+
+        signal.signal(signal.SIGTERM, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
+
+        self.ping = float("inf")
+        self.proc = None
+
+        # Retrieve data from geojson
+        self.countryCode = self.geojson.get("countryCode", None)
+        self.city = self.geojson.get("city", None)
+        self.ip = self.geojson.get("ip", None)
+        self.capacity = self.geojson.get("capacity", float("inf"))
+        self.country = self.geojson.get("country", None)
+
+        # Parse ovpn file
+        with open(ovpn_path, "r") as config_file:
             lines = config_file.readlines()
 
         self.config = {}
@@ -35,51 +53,67 @@ class IpvanishVPN(object):
                 self.config[args[0]] = args[1:]
 
         if not "remote" in self.config:
-            raise("Invalid config file")
+            raise IpvanishError("Invalid config file")
 
-        self.ca = os.path.join(os.path.dirname(config_path),self.config['ca'][0])
-        self.server = self.config["remote"][0]
-        
-        config_file_match = re.search(
-            r"ipvanish-(?P<country>[A-Z]{2})-(?P<town>.*)-[a-z]{3}-[a-z0-9]{3}\.ovpn",
-            os.path.basename(config_path)
-        )
+        if self.config["auth-user-pass"] == True:
+            self.config["auth-user-pass"] = [
+                os.path.join(os.path.dirname(os.path.dirname(self.ovpn_path)), "auth")
+            ]
 
-        self.country_code = None
-        self.town = None
-        if config_file_match is not None:
-            self.country_code = config_file_match.group("country")
-            self.town = " ".join(config_file_match.group("town").split("-"))
-        self.ip = None
-        self.ping = None
-        self.proc = None
+        if self.config["ca"] == ["ca.ipvanish.com.crt"]:
+            self.config["ca"][0] = os.path.join(
+                os.path.dirname(ovpn_path), self.config["ca"][0]
+            )
 
-        signal.signal(signal.SIGTERM, self.stop)
-        signal.signal(signal.SIGINT, self.stop)
+        # Retrive data from ovpn if not find in the geojson
+        self.server = self.ip if self.ip is not None else self.config["remote"][0]
+
+        if self.countryCode is None or self.city is None:
+            config_file_match = re.search(
+                r"ipvanish-(?P<country>[A-Z]{2})-(?P<city>.*)-[a-z]{3}-[a-z0-9]{3}\.ovpn",
+                os.path.basename(ovpn_path),
+            )
+            if config_file_match is not None:
+                self.countryCode = config_file_match.group("country")
+                self.city = " ".join(config_file_match.group("city").split("-"))
 
     def __str__(self):
         s = ""
-        if self.country_code is not None and self.town is not None:
-            s+="[{}, {}] ".format(self.town, self.country_code)
-        s += "{} ".format(self.server)
-        if self.ping is not None:
-            s += "- {} ms".format(self.ping)
+        if self.countryCode is not None and self.city is not None:
+            s += f"[{self.city}, {self.country if self.country else self.countryCode}] "
+        s += f"{self.server}"
+        if self.capacity < float("inf"):
+            s += f", Capacity {self.capacity}"
+        if self.ping < float("inf"):
+            s += f", Ping {self.ping} ms"
         return s
 
     def __lt__(self, other):
-        return self.ping < other.ping
+        return [self.ping, self.capacity, self.server] < [
+            other.ping,
+            other.capacity,
+            other.server,
+        ]
 
     def __le__(self, other):
         return not self.__gt__(other)
 
     def __eq__(self, other):
-        return self.ping == other.ping
+        return [self.ping, self.capacity, self.server] == [
+            other.ping,
+            other.capacity,
+            other.server,
+        ]
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __gt__(self, other):
-        return self.ping > other.ping
+        return [self.ping, self.capacity, self.server] > [
+            other.ping,
+            other.capacity,
+            other.server,
+        ]
 
     def __ge__(self, other):
         return not self.__lt__(other)
@@ -87,30 +121,37 @@ class IpvanishVPN(object):
     def stop(self, signum, frame):
         if self.proc is not None:
             self.proc.kill()
-    
+
     @threaded
     def ping_server(self):
-        server = self.ip if self.ip is not None else self.server
-        ping_process = subprocess.Popen(["ping", "-c3", "-w1", server], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ping_process = subprocess.Popen(
+            ["ping", "-c3", "-w1", self.server],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         out, err = ping_process.communicate()
         if err:
-            self.ping = float('inf')
+            self.ping = float("inf")
             return
         output = str(out)
-        if self.ip is None:
-            regex = r"PING "+r"\.".join(self.server.split("."))+r" \((?P<ip>[(\d{2})?.]+)\)"
-            ip_match = re.search(regex, output)
-            if ip_match is not None:
-                self.ip = ip_match.group("ip")
-        ping = None
-        ping_match = re.search(r"rtt min/avg/max/mdev = [\d.]+/(?P<ping>[\d.]+)/[\d.]+/[\d.]+ ms", output)
+        ping = float("inf")
+        ping_match = re.search(
+            r"rtt min/avg/max/mdev = [\d.]+/(?P<ping>[\d.]+)/[\d.]+/[\d.]+ ms", output
+        )
         if ping_match is not None:
-            ping = float(ping_match.group("ping"))
-        else:
-            ping = float('inf')
+            ping = int(float(ping_match.group("ping")))
         self.ping = ping
 
+    def _generate_openvpn_arguments(self):
+        args = []
+        for key, value in self.config.items():
+            args.append(f"--{key}")
+            if value != True:
+                args.extend(value)
+        return args
+
     def connect(self):
-        args = ['sudo','openvpn', "--config", self.config_path, '--auth-user-pass', os.path.join(CONFIG_PATH, 'auth'), "--ca", self.ca]
+        args = ["sudo", "openvpn"]
+        args.extend(self._generate_openvpn_arguments())
         self.proc = subprocess.Popen(args)
         self.proc.wait()
