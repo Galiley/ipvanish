@@ -24,4 +24,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+.env
+.venv
+
 .vscode
