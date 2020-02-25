@@ -1,21 +1,11 @@
-#!/usr/bin/env python
-
 import os
 import subprocess
 import re
 import signal
-import threading
-
-from ipvanish.error import IpvanishError
 
 
-def threaded(fn):
-    def run(*k, **kw):
-        t = threading.Thread(target=fn, args=k, kwargs=kw)
-        t.start()
-        return t
-
-    return run
+class IpvanishError(Exception):
+    pass
 
 
 class IpvanishVPN:
@@ -38,6 +28,7 @@ class IpvanishVPN:
         self.ip = self.geojson.get("ip", None)
         self.capacity = self.geojson.get("capacity", float("inf"))
         self.country = self.geojson.get("country", None)
+        self.region = self.geojson.get("continent", None)
 
         # Parse ovpn file
         with open(ovpn_path, "r") as config_file:
@@ -77,16 +68,21 @@ class IpvanishVPN:
                 self.countryCode = config_file_match.group("country")
                 self.city = " ".join(config_file_match.group("city").split("-"))
 
+    def to_dict(self):
+        return {
+            "server": self.server,
+            "city": self.city,
+            "country": self.country if self.country else self.countryCode,
+            "region": self.region,
+            "capacity": f"{self.capacity} %",
+            "ping": f"{self.ping} ms",
+        }
+
     def __str__(self):
-        s = ""
-        if self.countryCode is not None and self.city is not None:
-            s += f"[{self.city}, {self.country if self.country else self.countryCode}] "
-        s += f"{self.server}"
-        if self.capacity < float("inf"):
-            s += f", Capacity {self.capacity}"
-        if self.ping < float("inf"):
-            s += f", Ping {self.ping} ms"
-        return s
+        return f"<IpvanishVPN({', '.join([f'{k} = {v}' for k,v in self.to_dict().items()])})>"
+
+    def __repr__(self):
+        return str(self)
 
     def __lt__(self, other):
         return [self.ping, self.capacity, self.server] < [
@@ -122,7 +118,6 @@ class IpvanishVPN:
         if self.proc is not None:
             self.proc.kill()
 
-    @threaded
     def ping_server(self):
         ping_process = subprocess.Popen(
             ["ping", "-c3", "-w1", self.server],

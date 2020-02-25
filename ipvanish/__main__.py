@@ -1,4 +1,3 @@
-from ipvanish.cli import IpVanishCli
+from .cli import cli
 
-ipvanish = IpVanishCli()
-ipvanish.run()
+cli()

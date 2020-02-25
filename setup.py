@@ -13,7 +13,10 @@ setup(
     long_description=long_description,
     author="Galiley",
     author_email="Gal1ley@protonmail.com",
-    scripts=["bin/ipvanish"],
-    install_requires=["requests"],
+    install_requires=["requests", "click"],
     packages=["ipvanish"],
+    entry_points='''
+        [console_scripts]
+        ipvanish=ipvanish.cli:cli
+    ''',
 )

@@ -3,3 +3,5 @@
 # Default dependencies
 #
 requests
+click
+bs4
