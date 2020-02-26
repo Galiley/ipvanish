@@ -9,6 +9,10 @@ beautifulsoup4==4.8.2 \
     --hash=sha256:9fbb4d6e48ecd30bcacc5b63b94088192dcda178513b2ae3c394229f8911b887 \
     --hash=sha256:e1505eeed31b0f4ce2dbb3bc8eb256c04cc2b3b72af7d551a4ab6efd5cbe5dae \
     # via bs4
+beautifultable==0.8.0 \
+    --hash=sha256:28e2e93d44a4e84511c4869da4b907345435a06728925e295790f24e1d57300c \
+    --hash=sha256:d44d9551bbed7bfa88675324f84efb9aa857384d44e9fb21eb530f0a0badb815 \
+    # via -r requirements.in (line 8)
 bs4==0.0.1 \
     --hash=sha256:36ecea1fd7cc5c0c6e4a1ff075df26d50da647b75376626cc186e2212886dd3a \
     # via -r requirements.in (line 7)

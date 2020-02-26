@@ -9,9 +9,9 @@ import re
 import io
 import shutil
 import traceback
-import pprint
 import threading
 import bs4
+import beautifultable
 
 from .vpn import IpvanishVPN, IpvanishError
 
@@ -111,7 +111,7 @@ def auth(force):
         click.echo(traceback.print_exc(), file=sys.stderr)
 
 
-def _get_ipvanish_config_list(countries, is_excluded):
+def _get_ipvanish_config_list(countries: list, is_excluded: bool):
     config_list = glob.glob(
         os.path.join(SETTINGS["IPVANISH_PATH"], "configs", "*.ovpn")
     )
@@ -130,7 +130,7 @@ def _get_ipvanish_config_list(countries, is_excluded):
         return [os.path.join(SETTINGS["IPVANISH_PATH"], vpn) for vpn in config_list]
 
 
-def _get_ipvanish_geojson(countries, is_excluded):
+def _get_ipvanish_geojson(countries: list, is_excluded: bool):
     r = requests.get(SETTINGS["GEOJSON_URL"])
     if r.status_code == 200:
         d = {}
@@ -154,7 +154,7 @@ def _get_ipvanish_geojson(countries, is_excluded):
     return {}
 
 
-def _get_vpns(countries, is_excluded):
+def _get_vpns(countries: list, is_excluded: bool):
     config_files = _get_ipvanish_config_list(countries, is_excluded)
     if len(config_files) == 0:
         raise IpvanishError("There is no available server")
@@ -162,16 +162,18 @@ def _get_vpns(countries, is_excluded):
     geojson_data = _get_ipvanish_geojson(countries, is_excluded)
     vpns = []
     threads = []
-    for config_file in config_files:
-        geojson_id = config_file.split(".ovpn")[0].split("/")[-1]
-        vpn = IpvanishVPN(config_file, geojson_data.get(geojson_id, {}))
-        vpns.append(vpn)
-        thread = threading.Thread(target=vpn.ping_server)
-        thread.start()
-        threads.append(thread)
+    with click.progressbar(config_files, label="Retrieving vpn data", show_eta=False) as bar:
+        for config_file in bar:
+            geojson_id = config_file.split(".ovpn")[0].split("/")[-1]
+            vpn = IpvanishVPN(config_file, geojson_data.get(geojson_id, {}))
+            vpns.append(vpn)
+            thread = threading.Thread(target=vpn.ping_server)
+            thread.start()
+            threads.append(thread)
 
-    for thread in threads:
-        thread.join()
+        for i, thread in enumerate(threads):
+            thread.join()
+            bar.update(i)
     return vpns
 
 
@@ -201,12 +203,26 @@ def process_country(ctx: click.Context, param: click.Parameter, value):
 @click.pass_context
 def info(ctx: click.Context, countries: list, is_excluded: bool):
     """Display ipvanish vpn server status"""
-    if not os.path.exists(os.path.join(SETTINGS["IPVANISH_PATH"], "auth")):
-        ctx.forward(auth)
     try:
+        if not os.path.exists(os.path.join(SETTINGS["IPVANISH_PATH"], "auth")):
+            raise IpvanishError("Auth credentials not configured. Please run commands auth")
         vpns = _get_vpns(countries, is_excluded)
         vpns.sort()
-        click.echo(pprint.pformat(vpns))
+        table = beautifultable.BeautifulTable(max_width=180)
+        table.set_style(beautifultable.STYLE_BOX_ROUNDED)
+        table.column_headers = [
+            "Server",
+            "City",
+            "Country",
+            "Region",
+            "Ping",
+            "Capacity",
+        ]
+        for vpn in vpns:
+            table.append_row(
+                [vpn.server, vpn.city, vpn.country, vpn.region, vpn.ping, vpn.capacity]
+            )
+        click.echo(table)
     except IpvanishError as e:
         click.echo(f"[IpvanishError] {e}", file=sys.stderr)
     except Exception:
@@ -228,12 +244,12 @@ def info(ctx: click.Context, countries: list, is_excluded: bool):
 @click.pass_context
 def connect(ctx: click.Context, countries: list, is_excluded: bool):
     """Connect to an ipvanish vpn server"""
-    if not os.path.exists(os.path.join(SETTINGS["IPVANISH_PATH"], "auth")):
-        ctx.forward(auth)
     try:
+        if not os.path.exists(os.path.join(SETTINGS["IPVANISH_PATH"], "auth")):
+            raise IpvanishError("Auth credentials not configured. Please run commands auth")
         vpns = _get_vpns(countries, is_excluded)
         vpns.sort()
-        click.echo(f"Connecting to {vpns[0].server} ...")
+        click.echo(f"Connecting to {vpns[0]} ...")
         vpns[0].connect()
     except IpvanishError as e:
         click.echo(f"[IpvanishError] {e}", file=sys.stderr)

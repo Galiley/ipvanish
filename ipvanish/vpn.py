@@ -57,7 +57,7 @@ class IpvanishVPN:
             )
 
         # Retrive data from ovpn if not find in the geojson
-        self.server = self.ip if self.ip is not None else self.config["remote"][0]
+        self.server = self.config["remote"][0]
 
         if self.countryCode is None or self.city is None:
             config_file_match = re.search(
@@ -78,11 +78,12 @@ class IpvanishVPN:
             "ping": f"{self.ping} ms",
         }
 
-    def __str__(self):
+    def __repr__(self):
         return f"<IpvanishVPN({', '.join([f'{k} = {v}' for k,v in self.to_dict().items()])})>"
 
-    def __repr__(self):
-        return str(self)
+    def __str__(self):
+        data = self.to_dict()
+        return f"[{data['city']}, {data['country']}, {data['region']}] {data['server']} ({data['ping']}, {data['capacity']})"
 
     def __lt__(self, other):
         return [self.ping, self.capacity, self.server] < [
@@ -120,7 +121,7 @@ class IpvanishVPN:
 
     def ping_server(self):
         ping_process = subprocess.Popen(
-            ["ping", "-c3", "-w1", self.server],
+            ["ping", "-c3", "-w1", self.ip if self.ip is not None else self.server],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
