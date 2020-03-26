@@ -1,0 +1,23 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.4.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+-   repo: https://github.com/psf/black
+    rev: 19.10b0
+    hooks:
+    -   id: black
+        exclude: setup.py
+
+-   repo: local
+    hooks:
+    -   id: update-setup
+        name: Update setup.py
+        description: Update setup.py when pyproject.toml change with Dephell
+        entry: dephell deps convert --env=main
+        language: system
+        pass_filenames: false
+        files: pyproject.toml

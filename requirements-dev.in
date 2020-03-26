@@ -1,7 +1,0 @@
---index-url https://pypi.org/simple
-#
-# Dev dependencies
-#
-pip-tools
-pylint
-black==19.10b0

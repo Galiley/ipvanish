@@ -52,9 +52,7 @@ class IpvanishVPN:
             ]
 
         if self.config["ca"] == ["ca.ipvanish.com.crt"]:
-            self.config["ca"][0] = os.path.join(
-                os.path.dirname(ovpn_path), self.config["ca"][0]
-            )
+            self.config["ca"][0] = os.path.join(os.path.dirname(ovpn_path), self.config["ca"][0])
 
         # Retrive data from ovpn if not find in the geojson
         self.server = self.config["remote"][0]
@@ -139,7 +137,7 @@ class IpvanishVPN:
         self.ping = ping
 
     def _generate_openvpn_arguments(self):
-        args = []
+        args = ["sudo", "openvpn"]
         for key, value in self.config.items():
             args.append(f"--{key}")
             if value != True:
@@ -147,7 +145,5 @@ class IpvanishVPN:
         return args
 
     def connect(self):
-        args = ["sudo", "openvpn"]
-        args.extend(self._generate_openvpn_arguments())
-        self.proc = subprocess.Popen(args)
+        self.proc = subprocess.Popen(self._generate_openvpn_arguments())
         self.proc.wait()

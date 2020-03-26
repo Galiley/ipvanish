@@ -1,3 +1,4 @@
+## Python ##
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -24,7 +25,5 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-.env
-.venv
-
+## Visual Studio Code ##
 .vscode

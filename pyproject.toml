@@ -1,0 +1,32 @@
+[tool.black]
+line-length = 100
+
+[tool.poetry]
+name = "ipvanish"
+version = "1.2.0"
+description = "Simple CLI to handle Ipvanish VPN"
+readme = "README.md"
+authors = ["Galiley <Gal1ley@protonmail.com>"]
+
+[tool.poetry.scripts]
+ipvanish = 'ipvanish.cmd:cli'
+
+[tool.poetry.dependencies]
+python = "==3.*,>=3.8.0"
+beautifultable = "^0.8.0"
+bs4 = "^0.0.1"
+click = "^7.1.1"
+requests = "^2.23.0"
+
+[tool.poetry.dev-dependencies]
+black = "^19.10b0"
+pylint = "^2.4.4"
+pre-commit = "^2.2.0"
+
+[tool.dephell.main]
+from = {format = "poetry", path = "pyproject.toml"}
+to = {format = "setuppy", path = "setup.py"}
+
+[build-system]
+requires = ["setuptools>=38.3", "wheel"]
+build-backend = "setuptools.build_meta"

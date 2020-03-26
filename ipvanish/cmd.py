@@ -46,12 +46,9 @@ def sync():
                     raise IpvanishError
                 else:
                     shutil.rmtree(
-                        os.path.join(SETTINGS["IPVANISH_PATH"], "configs"),
-                        ignore_errors=True,
+                        os.path.join(SETTINGS["IPVANISH_PATH"], "configs"), ignore_errors=True,
                     )
-                    shutil.copytree(
-                        tmpfolder, os.path.join(SETTINGS["IPVANISH_PATH"], "configs")
-                    )
+                    shutil.copytree(tmpfolder, os.path.join(SETTINGS["IPVANISH_PATH"], "configs"))
                     click.echo(
                         f"Ipvanish ovpns files downloaded\n{len(zipfolder)-1} servers available"
                     )
@@ -64,9 +61,7 @@ def sync():
 
 
 def check_auth():
-    with open(
-        os.path.join(SETTINGS["IPVANISH_PATH"], "auth"), "r", encoding="utf-8"
-    ) as auth:
+    with open(os.path.join(SETTINGS["IPVANISH_PATH"], "auth"), "r", encoding="utf-8") as auth:
         username = auth.readline().rstrip("\n")
         password = auth.readline().rstrip("\n")
     with requests.Session() as s:
@@ -112,9 +107,7 @@ def auth(force):
 
 
 def _get_ipvanish_config_list(countries: list, is_excluded: bool):
-    config_list = glob.glob(
-        os.path.join(SETTINGS["IPVANISH_PATH"], "configs", "*.ovpn")
-    )
+    config_list = glob.glob(os.path.join(SETTINGS["IPVANISH_PATH"], "configs", "*.ovpn"))
     if len(countries) > 0:
         L = []
         regex = r"ipvanish-(" + r"|".join(countries) + r")-"
@@ -197,9 +190,7 @@ def process_country(ctx: click.Context, param: click.Parameter, value):
     callback=process_country,
     type=str,
 )
-@click.option(
-    "--not", "is_excluded", help="Filter out country code", is_flag=True, default=False
-)
+@click.option("--not", "is_excluded", help="Filter out country code", is_flag=True, default=False)
 @click.pass_context
 def info(ctx: click.Context, countries: list, is_excluded: bool):
     """Display ipvanish vpn server status"""
@@ -238,9 +229,7 @@ def info(ctx: click.Context, countries: list, is_excluded: bool):
     callback=process_country,
     type=str,
 )
-@click.option(
-    "--not", "is_excluded", help="Filter out country code", is_flag=True, default=False
-)
+@click.option("--not", "is_excluded", help="Filter out country code", is_flag=True, default=False)
 @click.pass_context
 def connect(ctx: click.Context, countries: list, is_excluded: bool):
     """Connect to an ipvanish vpn server"""

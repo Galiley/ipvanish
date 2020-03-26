@@ -5,7 +5,7 @@ Simple CLI to handle Ipvanish VPN
 
 ## Installation
 ```
-pip install --user git+https://github.com/Galiley/ipvanish.git
+pip install --user --upgrade git+https://github.com/Galiley/ipvanish.git
 ```
 
 ## Usage
@@ -26,11 +26,11 @@ Commands:
 
 ## Commands
 
-* `ipvanish auth --force`  
+* `ipvanish auth --force`
 Override auth credentials if present
 
-* `ipvanish connect --country COUNTRY1[,COUNTRY2,...]`  
+* `ipvanish connect --country COUNTRY1[,COUNTRY2,...]`
 Connect to an ipvanish vpn server located in these country
 
-* `ipvanish connect --not --country COUNTRY1[,COUNTRY2,...]`  
+* `ipvanish connect --not --country COUNTRY1[,COUNTRY2,...]`
 Connect to an ipvanish vpn server not located in these country
