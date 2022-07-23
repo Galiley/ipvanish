@@ -80,6 +80,14 @@ def check_auth():
 
 @cli.command(context_settings=SETTINGS["CONTEXT"])
 @click.option(
+    "--test",
+    "-f",
+    "test",
+    is_flag=True,
+    default=False,
+    help="Test auth credentials",
+)
+@click.option(
     "--force",
     "-f",
     "force",
@@ -87,7 +95,7 @@ def check_auth():
     default=False,
     help="Override auth credentials if present",
 )
-def auth(force):
+def auth(force, test):
     """Configure ipvanish auth credentials"""
     try:
         if force or not os.path.exists(os.path.join(SETTINGS["IPVANISH_PATH"], "auth")):
@@ -97,10 +105,11 @@ def auth(force):
                 click.echo(username, file=auth)
                 click.echo(password, file=auth)
         # Try to verify username and password
-        try:
-            check_auth()
-        except requests.exceptions.RequestException as e:
-            raise IpvanishError("Failed to test the auth credentials")
+        if test:
+            try:
+                check_auth()
+            except requests.exceptions.RequestException as e:
+                click.echo(f"Failed to test the auth credentials: {e}")
     except IpvanishError as e:
         click.echo(f"[IpvanishError] {e}", file=sys.stderr)
     except Exception:
