@@ -15,7 +15,7 @@ if os.path.exists(readme_path):
 setup(
     long_description=readme,
     name='ipvanish',
-    version='1.2.0',
+    version='1.2.1',
     description='Simple CLI to handle Ipvanish VPN',
     python_requires='==3.*,>=3.8.0',
     author='Galiley',
@@ -25,7 +25,7 @@ setup(
     package_dir={"": "."},
     package_data={},
     install_requires=[
-        'beautifultable==0.*,>=0.8.0', 'bs4==0.*,>=0.0.1', 'click==7.*,>=7.1.1',
+        'beautifultable==0.*,>=0.8.0', 'bs4==0.*,>=0.0.1', 'click==8.*,>=8.0.0',
         'requests==2.*,>=2.23.0'
     ],
     extras_require={
